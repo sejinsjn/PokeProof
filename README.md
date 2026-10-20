@@ -2,6 +2,8 @@
 
 PokeProof is a Windows WPF application for preparing video proof files. It can queue videos, copy and optionally rename them, add trade-history text, and compress them with FFmpeg using an AMD or NVIDIA encoder.
 
+The queue displays each video's processing status and progress, as well as overall progress for the full batch.
+
 ## Video compression
 
 AMD compression uses HEVC hardware encoding through AMF with QVBR quality level 51, the encoder's highest quality setting. This prioritizes image fidelity over file size while still using hardware compression. It preserves the input orientation, resolution, and frame timing instead of forcing every video to landscape Full HD. Compressed videos are muted; output size varies with the content. The encode remains lossy; truly lossless output would require a much larger file or copying the original without re-encoding.
