@@ -204,30 +204,19 @@ namespace PokeSqueeze.ViewModels
                             }
                             else
                             {
-                                FFMpeg.Mute(videoProof.OldFilePath, videoProof.MuteFilePath);
-                                /**FFMpegArguments.FromFileInput(videoProof.MuteFilePath)
-                                    .OutputToFile(videoProof.NewFilePath, false, options => options
-                                        .WithVideoCodec(VideoCodec.LibX265)
-                                        .WithConstantRateFactor(20)
-                                        .WithVariableBitrate(4)
-                                        .WithVideoFilters(filterOptions => filterOptions
-                                            .Scale(VideoSize.FullHd))
-                                        .WithFastStart())
-                                    .ProcessSynchronously();**/
                                 FFMpegArguments
-                                    .FromFileInput(videoProof.MuteFilePath)
+                                    .FromFileInput(videoProof.OldFilePath)
                                     .OutputToFile(videoProof.NewFilePath, false, options => options
                                         .WithCustomArgument("-c:v hevc_amf")
-                                        //crashes with these parameters, test later
-                                        //.WithCustomArgument("-quality quality")    // HQ preset
-                                        //.WithCustomArgument("-rc vbr")             // Variable bitrate
-                                        //.WithCustomArgument("-vbr-quality 25")     // Quality factor
-                                        .WithVideoFilters(filterOptions => filterOptions
-                                            .Scale(VideoSize.FullHd))
+                                        .WithCustomArgument("-usage high_quality")
+                                        .WithCustomArgument("-quality quality")
+                                        .WithCustomArgument("-rc qvbr")
+                                        .WithCustomArgument("-qvbr_quality_level 51")
+                                        .WithCustomArgument("-fps_mode passthrough")
+                                        .WithCustomArgument("-an")
                                         .WithFastStart())
                                     .ProcessSynchronously();
 
-                                File.Delete(videoProof.MuteFilePath);
                                 Queue.Remove(videoProof);
                             }
 

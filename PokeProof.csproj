@@ -51,16 +51,10 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <PropertyGroup>
-    <ManifestCertificateThumbprint>EE5299FF7E15FC1ACBCE197962B0F7C8E17F4C2E</ManifestCertificateThumbprint>
-  </PropertyGroup>
-  <PropertyGroup>
-    <ManifestKeyFile>PokeSqueeze_TemporaryKey.pfx</ManifestKeyFile>
-  </PropertyGroup>
-  <PropertyGroup>
     <GenerateManifests>true</GenerateManifests>
   </PropertyGroup>
   <PropertyGroup>
-    <SignManifests>true</SignManifests>
+    <SignManifests>false</SignManifests>
   </PropertyGroup>
   <PropertyGroup>
     <StartupObject>PokeSqueeze.App</StartupObject>
@@ -190,7 +184,6 @@
     <EmbeddedResource Include="FFmpeg\ffmpeg.exe" />
     <EmbeddedResource Include="FFmpeg\ffplay.exe" />
     <EmbeddedResource Include="FFmpeg\ffprobe.exe" />
-    <Content Include="MVVMCore\MVVMCore.csproj.user" />
   </ItemGroup>
   <ItemGroup>
     <BootstrapperPackage Include=".NETFramework,Version=v4.8.1">
