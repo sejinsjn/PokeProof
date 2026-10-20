@@ -9,6 +9,7 @@ namespace BarusuProofOrganizer.Models
     {
         private double progress;
         private string status = "Wartend";
+        private string statusKey = "statusWaiting";
         private string errorMessage = string.Empty;
 
         public string OldFilePath { get; set; }
@@ -41,7 +42,7 @@ namespace BarusuProofOrganizer.Models
         public string Status
         {
             get => status;
-            set
+            private set
             {
                 if (status == value)
                 {
@@ -52,6 +53,8 @@ namespace BarusuProofOrganizer.Models
                 OnPropertyChanged();
             }
         }
+
+        public string StatusKey => statusKey;
 
         public string ErrorMessage
         {
@@ -81,6 +84,13 @@ namespace BarusuProofOrganizer.Models
             NewFilePath = newFilePath;
             TradeHistory = tradeHistory;
             Compress = compress;
+        }
+
+        public void SetStatus(string key, string text)
+        {
+            statusKey = key;
+            OnPropertyChanged(nameof(StatusKey));
+            Status = text;
         }
 
         private void OnPropertyChanged([CallerMemberName] string propertyName = null)

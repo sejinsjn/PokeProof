@@ -1,5 +1,6 @@
 using BarusuProofOrganizer.Models;
 using FFMpegCore;
+using PokeSqueeze.Localization;
 using Microsoft.Win32;
 using MVVMCore;
 using System;
@@ -21,6 +22,8 @@ namespace PokeSqueeze.ViewModels
         public CommandBase StartProcessCommand { get; private set; }
         public CommandBase DeleteItemCommand { get; private set; }
         public ObservableCollection<VideoProof> Queue { get; } = new ObservableCollection<VideoProof>();
+        public LanguageCatalog Texts { get; } = new LanguageCatalog();
+        public List<string> Languages { get; } = new List<string> { "Deutsch", "English" };
 
         private List<string> files = new List<string>();
         private bool createFolder;
@@ -32,13 +35,15 @@ namespace PokeSqueeze.ViewModels
         private string fileEnding = ".mp4";
         private string tradeHistory = string.Empty;
         private string graphicsCard = "AMD";
+        private string selectedLanguage = "Deutsch";
         private bool isProcessing;
         private double queueProgress;
-        private string queueStatus = "Wähle Videos aus, um zu beginnen.";
+        private string queueStatusKey = "queueInitial";
+        private object[] queueStatusArguments = Array.Empty<object>();
 
         public string SelectedFilesText => files.Count == 0
-            ? "Noch keine Dateien ausgewählt"
-            : files.Count == 1 ? "1 Datei ausgewählt" : $"{files.Count} Dateien ausgewählt";
+            ? Texts["selectedFilesNone"]
+            : files.Count == 1 ? Texts["selectedFileOne"] : Texts.Format("selectedFilesMany", files.Count);
 
         public int QueueCount => Queue.Count;
 
@@ -46,8 +51,8 @@ namespace PokeSqueeze.ViewModels
         {
             get
             {
-                int finishedCount = Queue.Count(item => IsFinished(item.Status));
-                return $"{finishedCount} von {Queue.Count} Videos bearbeitet";
+                int finishedCount = Queue.Count(item => IsFinished(item.StatusKey));
+                return Texts.Format("queueSummary", finishedCount, Queue.Count);
             }
         }
 
@@ -66,20 +71,7 @@ namespace PokeSqueeze.ViewModels
             }
         }
 
-        public string QueueStatus
-        {
-            get => queueStatus;
-            private set
-            {
-                if (queueStatus == value)
-                {
-                    return;
-                }
-
-                queueStatus = value;
-                OnPropertyChanged();
-            }
-        }
+        public string QueueStatus => Texts.Format(queueStatusKey, queueStatusArguments);
 
         public bool IsProcessing
         {
@@ -239,13 +231,37 @@ namespace PokeSqueeze.ViewModels
             }
         }
 
+        public string SelectedLanguage
+        {
+            get => selectedLanguage;
+            set
+            {
+                if (selectedLanguage == value)
+                {
+                    return;
+                }
+
+                selectedLanguage = value;
+                Texts.Language = value;
+                foreach (VideoProof video in Queue)
+                {
+                    video.SetStatus(video.StatusKey, Texts[video.StatusKey]);
+                }
+
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(SelectedFilesText));
+                OnPropertyChanged(nameof(QueueSummary));
+                OnPropertyChanged(nameof(QueueStatus));
+            }
+        }
+
         public override void Initialize(object data)
         {
             OpenFilesCommand = new CommandBase(ExecuteOpenFilesCommand, _ => !IsProcessing);
             AddToQueueCommand = new CommandBase(ExecuteAddToQueueCommand, _ => !IsProcessing && files.Count > 0);
             StartProcessCommand = new CommandBase(
                 ExecuteStartProcessCommand,
-                _ => !IsProcessing && Queue.Any(item => item.Status == "Wartend" || item.Status == "Fehler"));
+                _ => !IsProcessing && Queue.Any(item => item.StatusKey == "statusWaiting" || item.StatusKey == "statusError"));
             DeleteItemCommand = new CommandBase(ExecuteDeleteItemCommand, _ => !IsProcessing);
         }
 
@@ -253,7 +269,7 @@ namespace PokeSqueeze.ViewModels
         {
             OpenFileDialog openFileDialog = new OpenFileDialog
             {
-                Filter = "Videodateien|*.mp4;*.mkv;*.mov;*.avi;*.webm;*.m4v|Alle Dateien|*.*",
+                Filter = Texts["fileFilter"],
                 Multiselect = true
             };
 
@@ -274,7 +290,7 @@ namespace PokeSqueeze.ViewModels
 
             if (!int.TryParse(TernaryNumberStart, out int ternaryNumber))
             {
-                QueueStatus = "Die Startnummer muss eine gültige Zahl sein.";
+                SetQueueStatus("queueInvalidNumber");
                 return;
             }
 
@@ -303,6 +319,7 @@ namespace PokeSqueeze.ViewModels
                 {
                     GraphicsCard = GraphicsCard
                 };
+                videoProof.SetStatus("statusWaiting", Texts["statusWaiting"]);
 
                 Queue.Add(videoProof);
                 ternaryNumber++;
@@ -311,7 +328,7 @@ namespace PokeSqueeze.ViewModels
             files.Clear();
             OnPropertyChanged(nameof(SelectedFilesText));
             UpdateQueueSummary();
-            QueueStatus = "Videos hinzugefügt. Du kannst weitere auswählen oder die Verarbeitung starten.";
+            SetQueueStatus("queueAdded");
             CommandManager.InvalidateRequerySuggested();
         }
 
@@ -323,7 +340,7 @@ namespace PokeSqueeze.ViewModels
             }
 
             List<VideoProof> pendingVideos = Queue
-                .Where(item => item.Status == "Wartend" || item.Status == "Fehler")
+                .Where(item => item.StatusKey == "statusWaiting" || item.StatusKey == "statusError")
                 .ToList();
 
             if (pendingVideos.Count == 0)
@@ -333,13 +350,13 @@ namespace PokeSqueeze.ViewModels
 
             foreach (VideoProof video in pendingVideos)
             {
-                video.Status = "Wartend";
+                video.SetStatus("statusWaiting", Texts["statusWaiting"]);
                 video.Progress = 0;
                 video.ErrorMessage = string.Empty;
             }
 
             IsProcessing = true;
-            QueueStatus = $"Verarbeitung gestartet: {pendingVideos.Count} Video(s).";
+            SetQueueStatus("queueStarted", pendingVideos.Count);
             UpdateQueueSummary();
             Task.Run(() => ProcessQueue(pendingVideos));
         }
@@ -355,8 +372,8 @@ namespace PokeSqueeze.ViewModels
                 VideoProof video = videos[index];
                 UpdateOnUi(() =>
                 {
-                    video.Status = "Wird vorbereitet";
-                    QueueStatus = $"Video {index + 1} von {videos.Count}: {video.SourceFileName}";
+                    SetVideoStatus(video, "statusPreparing");
+                    SetQueueStatus("queueCurrentVideo", index + 1, videos.Count, video.SourceFileName);
                 });
 
                 bool outputExisted = File.Exists(video.NewFilePath);
@@ -365,7 +382,7 @@ namespace PokeSqueeze.ViewModels
                 {
                     if (!File.Exists(video.OldFilePath))
                     {
-                        throw new FileNotFoundException("Die Quelldatei wurde nicht gefunden.", video.OldFilePath);
+                        throw new FileNotFoundException(Texts["missingSource"], video.OldFilePath);
                     }
 
                     if (outputExisted)
@@ -373,7 +390,7 @@ namespace PokeSqueeze.ViewModels
                         skippedCount++;
                         UpdateOnUi(() =>
                         {
-                            video.Status = "Übersprungen (Zieldatei existiert)";
+                            SetVideoStatus(video, "statusSkipped");
                             video.Progress = 100;
                             UpdateQueueSummary();
                         });
@@ -394,13 +411,13 @@ namespace PokeSqueeze.ViewModels
                     }
                     else
                     {
-                        UpdateOnUi(() => video.Status = "Wird kopiert");
+                        SetVideoStatus(video, "statusCopying");
                         CopyFileWithProgress(video);
                         UpdateOnUi(() => video.Progress = 100);
                     }
 
                     successfulCount++;
-                    UpdateOnUi(() => video.Status = "Fertig");
+                    SetVideoStatus(video, "statusDone");
                 }
                 catch (Exception exception)
                 {
@@ -424,7 +441,7 @@ namespace PokeSqueeze.ViewModels
                     failedCount++;
                     UpdateOnUi(() =>
                     {
-                        video.Status = "Fehler";
+                        SetVideoStatus(video, "statusError");
                         video.ErrorMessage = errorMessage;
                     });
                 }
@@ -435,16 +452,18 @@ namespace PokeSqueeze.ViewModels
             UpdateOnUi(() =>
             {
                 IsProcessing = false;
-                QueueStatus = failedCount == 0
-                    ? $"Fertig: {successfulCount} verarbeitet, {skippedCount} übersprungen."
-                    : $"Abgeschlossen: {successfulCount} verarbeitet, {skippedCount} übersprungen, {failedCount} mit Fehlern.";
+                SetQueueStatus(
+                    failedCount == 0 ? "queueFinished" : "queueFinishedErrors",
+                    failedCount == 0
+                        ? new object[] { successfulCount, skippedCount }
+                        : new object[] { successfulCount, skippedCount, failedCount });
                 UpdateQueueSummary();
             });
         }
 
         private void ProcessCompressedVideo(VideoProof video)
         {
-            UpdateOnUi(() => video.Status = "Analysiere Video");
+            SetVideoStatus(video, "statusAnalysing");
             FFmpegInitializer.InitializeFFmpeg();
             TimeSpan duration = FFProbe.Analyse(video.OldFilePath).Duration;
 
@@ -479,7 +498,7 @@ namespace PokeSqueeze.ViewModels
                     options.WithFastStart();
                 });
 
-            UpdateOnUi(() => video.Status = "Komprimiert");
+            SetVideoStatus(video, "statusCompressing");
             if (duration > TimeSpan.Zero)
             {
                 processor.NotifyOnProgress(
@@ -535,7 +554,7 @@ namespace PokeSqueeze.ViewModels
             UpdateQueueSummary();
             if (Queue.Count == 0)
             {
-                QueueStatus = "Wähle Videos aus, um zu beginnen.";
+                SetQueueStatus("queueInitial");
             }
 
             CommandManager.InvalidateRequerySuggested();
@@ -553,19 +572,38 @@ namespace PokeSqueeze.ViewModels
             }
 
             QueueProgress = Queue.Average(item =>
-                IsFinished(item.Status) ? 100 : Math.Max(0, Math.Min(100, item.Progress)));
+                IsFinished(item.StatusKey) ? 100 : Math.Max(0, Math.Min(100, item.Progress)));
+        }
+
+        private void SetQueueStatus(string key, params object[] arguments)
+        {
+            queueStatusKey = key;
+            queueStatusArguments = arguments;
+            OnPropertyChanged(nameof(QueueStatus));
+        }
+
+        private void SetVideoStatus(VideoProof video, string key)
+        {
+            UpdateOnUi(() => video.SetStatus(key, Texts[key]));
         }
 
         private void UpdateOnUi(Action action)
         {
-            Application.Current.Dispatcher.Invoke(action);
+            if (Application.Current.Dispatcher.CheckAccess())
+            {
+                action();
+            }
+            else
+            {
+                Application.Current.Dispatcher.Invoke(action);
+            }
         }
 
         private static bool IsFinished(string status)
         {
-            return status == "Fertig"
-                || status == "Fehler"
-                || status == "Übersprungen (Zieldatei existiert)";
+            return status == "statusDone"
+                || status == "statusError"
+                || status == "statusSkipped";
         }
 
         public static string ToTernary(int value)
