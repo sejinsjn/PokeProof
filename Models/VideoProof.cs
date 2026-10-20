@@ -18,6 +18,7 @@ namespace BarusuProofOrganizer.Models
         public string TradeHistory { get; set; }
         public bool Compress { get; set; }
         public string GraphicsCard { get; set; }
+        public bool ExtractSummary { get; set; }
 
         public string SourceFileName => Path.GetFileName(OldFilePath);
 

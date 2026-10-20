@@ -67,7 +67,9 @@
                         <TextBlock Text="{Binding Texts[settings]}" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,10" />
                         <TextBlock Text="{Binding Texts[output]}" FontWeight="SemiBold" Margin="0,10,0,2" />
                         <CheckBox Content="{Binding Texts[createFolder]}"
-                                  IsChecked="{Binding CreateFolder, Mode=TwoWay}" />
+                                  IsChecked="{Binding CreateFolder, Mode=TwoWay}"
+                                  IsEnabled="{Binding CanToggleCreateFolder}"
+                                  ToolTip="{Binding Texts[createFolderRequiredTooltip]}" />
                         <CheckBox Content="{Binding Texts[tradeHistory]}"
                                   IsChecked="{Binding AddTradeHistory, Mode=TwoWay}" />
                         <TextBox Text="{Binding TradeHistory, UpdateSourceTrigger=PropertyChanged}"
@@ -75,6 +77,9 @@
                                  MinHeight="90" MaxHeight="150" Margin="0,0,0,8"
                                  IsEnabled="{Binding AddTradeHistory}"
                                  ToolTip="{Binding Texts[tradeHistoryTooltip]}" />
+                        <CheckBox Content="{Binding Texts[extractSummary]}"
+                                  IsChecked="{Binding ExtractSummary, Mode=TwoWay}"
+                                  ToolTip="{Binding Texts[extractSummaryTooltip]}" />
 
                         <Separator Margin="0,10,0,8" />
                         <CheckBox Content="{Binding Texts[renameVideos]}" IsChecked="{Binding RenameVideos, Mode=TwoWay}" />

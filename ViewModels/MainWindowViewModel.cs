@@ -1,6 +1,7 @@
 using BarusuProofOrganizer.Models;
 using FFMpegCore;
 using PokeSqueeze.Localization;
+using PokeSqueeze.Services;
 using Microsoft.Win32;
 using MVVMCore;
 using System;
@@ -28,6 +29,7 @@ namespace PokeSqueeze.ViewModels
         private List<string> files = new List<string>();
         private bool createFolder;
         private bool addTradeHistory;
+        private bool extractSummary;
         private bool renameVideos;
         private bool compressVideos;
         private string beginningNumber = "12";
@@ -94,6 +96,11 @@ namespace PokeSqueeze.ViewModels
             get => createFolder;
             set
             {
+                if (!value && !CanToggleCreateFolder)
+                {
+                    return;
+                }
+
                 if (createFolder == value)
                 {
                     return;
@@ -103,6 +110,8 @@ namespace PokeSqueeze.ViewModels
                 OnPropertyChanged();
             }
         }
+
+        public bool CanToggleCreateFolder => !AddTradeHistory && !ExtractSummary;
 
         public bool AddTradeHistory
         {
@@ -121,6 +130,28 @@ namespace PokeSqueeze.ViewModels
                 }
 
                 OnPropertyChanged();
+                OnPropertyChanged(nameof(CanToggleCreateFolder));
+            }
+        }
+
+        public bool ExtractSummary
+        {
+            get => extractSummary;
+            set
+            {
+                if (extractSummary == value)
+                {
+                    return;
+                }
+
+                extractSummary = value;
+                if (extractSummary)
+                {
+                    CreateFolder = true;
+                }
+
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(CanToggleCreateFolder));
             }
         }
 
@@ -317,7 +348,8 @@ namespace PokeSqueeze.ViewModels
                     AddTradeHistory ? TradeHistory : null,
                     CompressVideos)
                 {
-                    GraphicsCard = GraphicsCard
+                    GraphicsCard = GraphicsCard,
+                    ExtractSummary = ExtractSummary
                 };
                 videoProof.SetStatus("statusWaiting", Texts["statusWaiting"]);
 
@@ -377,6 +409,9 @@ namespace PokeSqueeze.ViewModels
                 });
 
                 bool outputExisted = File.Exists(video.NewFilePath);
+                string outputDirectory = Path.GetDirectoryName(video.NewFilePath);
+                string summaryPath = Path.Combine(outputDirectory, "Summary.txt");
+                bool needsSummaryExtraction = video.ExtractSummary && !File.Exists(summaryPath);
 
                 try
                 {
@@ -385,7 +420,7 @@ namespace PokeSqueeze.ViewModels
                         throw new FileNotFoundException(Texts["missingSource"], video.OldFilePath);
                     }
 
-                    if (outputExisted)
+                    if (outputExisted && !needsSummaryExtraction)
                     {
                         skippedCount++;
                         UpdateOnUi(() =>
@@ -397,8 +432,49 @@ namespace PokeSqueeze.ViewModels
                         continue;
                     }
 
-                    string outputDirectory = Path.GetDirectoryName(video.NewFilePath);
                     Directory.CreateDirectory(outputDirectory);
+
+                    string summaryWarning = null;
+                    if (needsSummaryExtraction)
+                    {
+                        SetVideoStatus(video, "statusExtractingSummary");
+                        try
+                        {
+                            string summaryText = SummaryExtractor.ReadLastScreenText(video.OldFilePath);
+                            if (string.IsNullOrWhiteSpace(summaryText))
+                            {
+                                summaryWarning = Texts["summaryNoText"];
+                            }
+                            else
+                            {
+                                File.WriteAllText(summaryPath, summaryText, Encoding.UTF8);
+                            }
+                        }
+                        catch (SummaryExtractionException exception)
+                        {
+                            summaryWarning = Texts.Format("summaryExtractionFailed", exception.Message);
+                        }
+
+                        if (summaryWarning != null)
+                        {
+                            File.WriteAllText(summaryPath, summaryWarning, Encoding.UTF8);
+                        }
+                    }
+
+                    if (outputExisted)
+                    {
+                        skippedCount++;
+                        UpdateOnUi(() =>
+                        {
+                            video.ErrorMessage = summaryWarning ?? string.Empty;
+                            SetVideoStatus(video, summaryWarning == null
+                                ? "statusSkippedSummaryExtracted"
+                                : "statusDoneSummaryWarning");
+                            video.Progress = 100;
+                            UpdateQueueSummary();
+                        });
+                        continue;
+                    }
 
                     if (video.TradeHistory != null)
                     {
@@ -417,7 +493,13 @@ namespace PokeSqueeze.ViewModels
                     }
 
                     successfulCount++;
-                    SetVideoStatus(video, "statusDone");
+                    UpdateOnUi(() =>
+                    {
+                        video.ErrorMessage = summaryWarning ?? string.Empty;
+                        SetVideoStatus(video, summaryWarning == null
+                            ? "statusDone"
+                            : "statusDoneSummaryWarning");
+                    });
                 }
                 catch (Exception exception)
                 {
@@ -602,6 +684,8 @@ namespace PokeSqueeze.ViewModels
         private static bool IsFinished(string status)
         {
             return status == "statusDone"
+                || status == "statusDoneSummaryWarning"
+                || status == "statusSkippedSummaryExtracted"
                 || status == "statusError"
                 || status == "statusSkipped";
         }

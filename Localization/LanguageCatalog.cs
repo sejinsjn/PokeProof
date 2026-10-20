@@ -16,8 +16,11 @@ namespace PokeSqueeze.Localization
             ["settings"] = "Einstellungen",
             ["output"] = "Ausgabe",
             ["createFolder"] = "Für jedes Video einen Ordner erstellen",
+            ["createFolderRequiredTooltip"] = "Wird für separate Textdateien pro Video benötigt.",
             ["tradeHistory"] = "Tauschverlauf als Textdatei speichern",
             ["tradeHistoryTooltip"] = "Dieser Text wird als TradeHistory.txt im Ausgabeordner gespeichert.",
+            ["extractSummary"] = "Pokémon-Summary als Summary.txt auslesen",
+            ["extractSummaryTooltip"] = "Liest den Text aus den letzten Sekunden des Videos lokal aus und speichert ihn getrennt.",
             ["renameVideos"] = "Videos umbenennen",
             ["startNumber"] = "Startnummer",
             ["fileExtension"] = "Dateiendung",
@@ -49,8 +52,13 @@ namespace PokeSqueeze.Localization
             ["statusCopying"] = "Wird kopiert",
             ["statusAnalysing"] = "Video wird analysiert",
             ["statusCompressing"] = "Video wird komprimiert",
+            ["statusExtractingSummary"] = "Pokémon-Summary wird ausgelesen",
+            ["statusDoneSummaryWarning"] = "Video fertig; Summary-Auslesung prüfen",
+            ["statusSkippedSummaryExtracted"] = "Video bereits vorhanden; Summary ergänzt",
             ["statusDone"] = "Fertig",
             ["statusError"] = "Fehler",
+            ["summaryNoText"] = "Kein lesbarer Text erkannt. Bitte das Video prüfen.",
+            ["summaryExtractionFailed"] = "Summary konnte nicht ausgelesen werden: {0}",
             ["fileFilter"] = "Videodateien|*.mp4;*.mkv;*.mov;*.avi;*.webm;*.m4v|Alle Dateien|*.*"
         };
 
@@ -62,8 +70,11 @@ namespace PokeSqueeze.Localization
             ["settings"] = "Settings",
             ["output"] = "Output",
             ["createFolder"] = "Create a folder for each video",
+            ["createFolderRequiredTooltip"] = "Required to save separate text files for each video.",
             ["tradeHistory"] = "Save trade history as a text file",
             ["tradeHistoryTooltip"] = "This text is saved as TradeHistory.txt in the output folder.",
+            ["extractSummary"] = "Read Pokémon summary to Summary.txt",
+            ["extractSummaryTooltip"] = "Reads text from the final seconds of the video locally and saves it separately.",
             ["renameVideos"] = "Rename videos",
             ["startNumber"] = "Starting number",
             ["fileExtension"] = "File extension",
@@ -95,8 +106,13 @@ namespace PokeSqueeze.Localization
             ["statusCopying"] = "Copying",
             ["statusAnalysing"] = "Analyzing video",
             ["statusCompressing"] = "Compressing video",
+            ["statusExtractingSummary"] = "Reading Pokémon summary",
+            ["statusDoneSummaryWarning"] = "Video done; check summary extraction",
+            ["statusSkippedSummaryExtracted"] = "Video already existed; summary added",
             ["statusDone"] = "Done",
             ["statusError"] = "Error",
+            ["summaryNoText"] = "No readable text was recognized. Check the video.",
+            ["summaryExtractionFailed"] = "Could not read the summary: {0}",
             ["fileFilter"] = "Video files|*.mp4;*.mkv;*.mov;*.avi;*.webm;*.m4v|All files|*.*"
         };
 

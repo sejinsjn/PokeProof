@@ -106,6 +106,10 @@
     <Reference Include="System.Xaml">
       <RequiredTargetFramework>4.0</RequiredTargetFramework>
     </Reference>
+    <Reference Include="Tesseract">
+      <HintPath>packages\Tesseract.5.2.0\lib\net48\Tesseract.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
     <Reference Include="WindowsBase" />
     <Reference Include="PresentationCore" />
     <Reference Include="PresentationFramework" />
@@ -117,6 +121,7 @@
     </ApplicationDefinition>
     <Compile Include="FFmpeg\FFmpegInitializer.cs" />
     <Compile Include="Localization\LanguageCatalog.cs" />
+    <Compile Include="Services\SummaryExtractor.cs" />
     <Compile Include="ViewModels\MainWindowViewModel.cs" />
     <Page Include="MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
@@ -182,6 +187,14 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="tessdata\*.traineddata">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="tessdata\LICENSE.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+  <ItemGroup>
     <EmbeddedResource Include="FFmpeg\ffmpeg.exe" />
     <EmbeddedResource Include="FFmpeg\ffplay.exe" />
     <EmbeddedResource Include="FFmpeg\ffprobe.exe" />
@@ -198,5 +211,7 @@
       <Install>false</Install>
     </BootstrapperPackage>
   </ItemGroup>
+  <Import Project="packages\Tesseract.5.2.0\build\Tesseract.targets"
+          Condition="Exists('packages\Tesseract.5.2.0\build\Tesseract.targets')" />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
